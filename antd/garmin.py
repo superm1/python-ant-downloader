@@ -326,6 +326,25 @@ class Device(object):
         else:
             raise DeviceNotSupportedError("Device does not support get_runs.")
 
+    def get_workout_limits(self):
+        if self.workout_limits_proto:
+            return self.execute(self.workout_limits_proto)[0]
+        else:
+            raise DeviceNotSupportedError("Device does not support workout_limits.")
+
+    def init_workout_limits(self):
+        pkts = self.get_workout_limits()
+        try:
+            limits = pkts.by_pid[self.link_proto.PID_WORKOUT_LIMITS][0].data
+            self.max_workouts = limits.max_workouts
+            self.max_unscheduled_workouts = limits.max_unscheduled_workouts
+            self.max_occurrences = limits.max_occurrences
+            _log.debug("init_workout_limits: max_workouts=%d, max_unscheduled_workouts=%d, max_occurrences=%d",
+                    self.max_workouts, self.max_unscheduled_workouts, self.max_occurrences)
+        except AttributeError, IndexError:
+            _log.warning("init_workout_limits: failed to get limits", exc_info=True)
+            raise DeviceNotSupportedError("Device does not support workout_limits data type.")
+
     def init_device_api(self):
         """
         Initialize the protocols used by this
@@ -353,6 +372,11 @@ class Device(object):
         self.trk_proto = self._find_app_protocol("get_trks", (A301, A302))
         self.lap_proto = self._find_app_protocol("get_laps", (A906,))
         self.run_proto = self._find_app_protocol("get_runs", (A1000,))
+        self.workout_limits_proto = self._find_app_protocol("workout_limits", (A1005,))
+        try:
+            self.init_workout_limits()
+        except DeviceNotSupportedError:
+            _log.warning("Unable to query device workout limits capabilities.")
 
     def _find_core_protocol(self, name, candidates):
         """
@@ -618,6 +642,22 @@ class A906(DownloadProtocol):
     def execute(self):
         _log.debug("A906: executing transfer laps")
         yield (self.link_proto.PID_COMMAND_DATA, self.cmd_proto.CMND_TRANSFER_LAPS)
+
+
+class A1005(Protocol):
+    """
+    Workout limits
+    """
+
+    def __init__(self, protocols, workout_limits_type):
+        super(A1005, self).__init__(protocols)
+        self.data_type_by_pid.update({
+            self.link_proto.PID_WORKOUT_LIMITS: workout_limits_type
+        })
+
+    def execute(self):
+        _log.debug("A1005: executing workout limits")
+        yield (self.link_proto.PID_COMMAND_DATA, self.cmd_proto.CMND_TRANSFER_WORKOUT_LIMITS)
 
 
 class PacketList(list):
@@ -905,6 +945,16 @@ class D1018(DataType):
             # word alignment
             self.unparsed = self.unparsed[1:]
         
+
+class D1005(DataType):
+    """
+    Workout limits
+    """
+
+    def __init__(self, data):
+        super(D1005, self).__init__(data)
+        self._unpack("<III", ["max_workouts", "max_unscheduled_workouts", "max_occurrences"])
+
 
 class DeviceNotSupportedError(Exception):
     """
