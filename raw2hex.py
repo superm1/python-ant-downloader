@@ -31,10 +31,9 @@
 
 import sys
 import logging
-import lxml.etree as etree
+import struct
 
 import antd.garmin as garmin
-import antd.tcx as tcx
 import antd.cfg as cfg
 
 cfg.init_loggers(logging.DEBUG, out=sys.stderr)
@@ -44,14 +43,13 @@ if len(sys.argv) != 2:
 	sys.exit(1)
 
 with open(sys.argv[1]) as file:
-	host = garmin.MockHost(file.read())
-	#device = garmin.Device(host)
-	for idx, pkt in enumerate(host.reader):
-		if pkt:
-			pid, length, data = garmin.unpack(pkt)
-			data = list(garmin.chunk(data.encode("hex"), 32))
-			data = [" ".join(garmin.chunk(d, 2)) for d in data]
-			data = "\n".join([(d if not i else (" " * 23) + d) for i, d in enumerate(data)])
-			print "%04d pid=%04x len=%04x %s" % (idx, pid, length, data)
-		else:
-			print "%04d EOF" % idx
+	while True:
+		pkt = file.read(6)
+		if not pkt: break
+		dir, pid, length = struct.unpack("<HHH", pkt)
+		dir = "OUT" if not dir else "IN"
+		data = file.read(length)
+		data = list(garmin.chunk(data.encode("hex"), 32))
+		data = [" ".join(garmin.chunk(d, 2)) for d in data]
+		data = "\n".join([(d if not i else (" " * 27) + d) for i, d in enumerate(data)])
+		print "dir=%-3s pid=%04x len=%04x  %s" % (dir, pid, length, data)

@@ -161,7 +161,7 @@ def dump_packet(file, packet):
     uint16=packet_id, uint16t=data_length, char[]=data
     """
     pid, length, data = packet
-    file.write(struct.pack("<HH", pid, length))
+    file.write(struct.pack("<HHH", 1, pid, length))
     if data: file.write(data.raw)
 
 def dump(file, data):
@@ -169,11 +169,11 @@ def dump(file, data):
     Recursively dump the given packets (or packet)
     to given file.
     """
-    for packet in data:
-        try:
+    try:
+        for packet in data:
             dump(file, packet)
-        except TypeError:
-            dump_packet(file, packet)
+    except TypeError:
+        dump_packet(file, data)
 
 def pack(pid, data_type=None):
     """
@@ -472,10 +472,10 @@ class MockHost(object):
 
     def _read(self, data):
         while data:
-            (length,) = struct.unpack("<H", data[2:4])
-            if length: pkt = data[0:length + 4]
+            (length,) = struct.unpack("<H", data[4:6])
+            if length: pkt = data[2:length + 6]
             else: pkt = ""
-            data = data[length + 4:]
+            data = data[length + 6:]
             yield pkt
 
 
