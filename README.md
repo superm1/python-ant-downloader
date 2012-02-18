@@ -14,15 +14,20 @@ Issues Tracker: https://github.com/braiden/python-ant-downloader/issues
 
 ## Supported Devices
 
-So far this software as only been tested with a Garmin 405CX using USB2 Wireless ANT Stick (FCC ID 06RUSB2). It seems to work perfectly, even better than the window agent, but there are probably bugs. I will try to update this section if I here reports of success / failure.
+So far this software has only been tested with a Garmin 405CX using USB2 Wireless ANT Stick (FCC ID 06RUSB2). It seems to work perfectly, even better than the window agent, but there are probably bugs. I will try to update this section if I here reports of success / failure.
 
 ## Installing
 
-The "master" branch will always contain latest stable code:
+Clone the latest version from github:
 
-<code>
-git clone git://github.com/braiden/open-ant-agent.git
-</code>
+    git clone git://github.com/braiden/python-ant-downloader.git
+
+I try to keep the master branch stable, but if something fails you can try a tagged build, e.g:
+
+    cd python-ant-downloader
+    git checkout v12.03.17
+
+Use <code>git tag</code> to list other tagged builds. Version numbers are in the format <code>vYY.MM.DD</code>.
 
 ### Prerequisites
 
@@ -34,9 +39,7 @@ git clone git://github.com/braiden/open-ant-agent.git
 
 On Ubuntu most of these dependencies can be satisfied with:
 
-<code>
-apt-get install python python-argparse python-lxml
-</code>
+    apt-get install python python-argparse python-lxml
 
 But, you will still need to download pyusb and poster from github.
 
