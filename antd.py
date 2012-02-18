@@ -90,8 +90,7 @@ try:
                     dev = antd.Device(host)
                     # dump device capabilities as start of raw output file.
                     # they're needed determine data types when file is read.
-                    antd.garmin.dump(file, dev.get_product_data())
-                    antd.garmin.dump(file, dev.get_workout_limits())
+                    antd.garmin.dump_capabilities(file, dev)
                     runs = dev.get_runs()
                     antd.garmin.dump(file, runs)
                 _log.info("Closing session.")

@@ -147,6 +147,13 @@ class A010(object):
         self.data_type_by_pid = {}
 
 
+def dump_capabilities(file, device):
+    try: dump(file, device.get_product_data())
+    except DeviceNotSupportedError: pass 
+    else:
+        try: dump(file, device.get_workout_limits())
+        except DeviceNotSupportedError: pass
+
 def dump_packet(file, packet):
     """
     Dump the given packet to file.

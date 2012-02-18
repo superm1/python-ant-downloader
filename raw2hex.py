@@ -49,7 +49,9 @@ with open(sys.argv[1]) as file:
 	for idx, pkt in enumerate(host.reader):
 		if pkt:
 			pid, length, data = garmin.unpack(pkt)
-			data = "\n".join([(d if not idx else (" " * 23) + d) for idx, d in enumerate(garmin.chunk(data.encode("hex"), 32))])
+			data = list(garmin.chunk(data.encode("hex"), 32))
+			data = [" ".join(garmin.chunk(d, 2)) for d in data]
+			data = "\n".join([(d if not i else (" " * 23) + d) for i, d in enumerate(data)])
 			print "%04d pid=%04x len=%04x %s" % (idx, pid, length, data)
 		else:
 			print "%04d EOF" % idx
