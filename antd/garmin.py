@@ -148,20 +148,25 @@ class A010(object):
 
 
 def dump_capabilities(file, device):
-    try: dump(file, device.get_product_data())
-    except DeviceNotSupportedError: pass 
-    else:
-        try: dump(file, device.get_workout_limits())
+    """
+    Dump all know capability packets to given files.
+    """
+    capabilities = [
+        device.get_product_data,
+        device.get_workout_limits,
+    ]
+    for cap in capabilities:
+        try: dump(file, cap())
         except DeviceNotSupportedError: pass
 
-def dump_packet(file, packet):
+def dump_packet(file, dir, packet):
     """
     Dump the given packet to file.
     Format is consistant with garmin physical packet format.
     uint16=packet_id, uint16t=data_length, char[]=data
     """
     pid, length, data = packet
-    file.write(struct.pack("<HHH", 1, pid, length))
+    file.write(struct.pack("<HHH", dir, pid, length))
     if data: file.write(data.raw)
 
 def dump(file, data):
@@ -169,11 +174,13 @@ def dump(file, data):
     Recursively dump the given packets (or packet)
     to given file.
     """
+    try: dump_packet(file, 0, data.request_pkt)
+    except AttributeError: pass
     try:
         for packet in data:
             dump(file, packet)
     except TypeError:
-        dump_packet(file, data)
+        dump_packet(file, 1, data)
 
 def pack(pid, data_type=None):
     """
@@ -440,8 +447,7 @@ class Device(object):
                     for pid, length, data in tokenize(pkt):
                         in_packets.append((pid, length, protocol.decode_packet(pid, length, data)))
                         self.stream.write(pack(P000.PID_ACK, pid))
-                in_packets.append((0, 0, None))
-                result.append(protocol.decode_list(in_packets))
+                result.append(protocol.decode_list(next[0], next[1], in_packets))
 
         return protocol.decode_result(result)
 
@@ -461,8 +467,9 @@ class MockHost(object):
     def __init__(self, data):
         self.reader = self._read(data)
 
-    def write(self, *args, **kwds):
-        pass
+    def write(self, data, *args, **kwds):
+        pid, length = struct.unpack("<HH", data[:4])
+        data = data[4:]
 
     def read(self):
         try:
@@ -472,9 +479,9 @@ class MockHost(object):
 
     def _read(self, data):
         while data:
-            (length,) = struct.unpack("<H", data[4:6])
-            if length: pkt = data[2:length + 6]
-            else: pkt = ""
+            (direction, pid, length) = struct.unpack("<HHH", data[:6])
+            if direction: pkt = data[2:length + 6]
+            else: return ""
             data = data[length + 6:]
             yield pkt
 
@@ -510,8 +517,8 @@ class Protocol(object):
             data_cls = self.data_type_by_pid.get(pid, DataType)
             return data_cls(data)
 
-    def decode_list(self, pkts):
-        return PacketList(pkts)
+    def decode_list(self, request_pid, request_data, reply_pkts):
+        return PacketList(request_pid, request_data, reply_pkts)
 
     def decode_result(self, list):
         return list
@@ -671,14 +678,23 @@ class PacketList(list):
 
     Packet = collections.namedtuple("Packet", ["pid", "length", "data"])
 
-    def __init__(self, iterable):
-        super(PacketList, self).__init__(self.Packet(*i) for i in iterable)
+    def __init__(self, request_pid, request_data, reply_packets):
+        self.request_pid = request_pid
+        self.request_data = request_data
+        super(PacketList, self).__init__(self.Packet(*i) for i in reply_packets)
         self._update_packets_by_id()
 
     def _update_packets_by_id(self):
         d = collections.defaultdict(list)
         for pkt in self: d[pkt[0]].append(pkt)
         self.by_pid = d
+    
+    @property
+    def request_pkt(self):
+        pid = self.request_pid
+        length = 2 if self.request_data is not None else 0
+        data = DataType(struct.pack("<H", self.request_data) if self.request_data is not None else "")
+        return (pid, length, data)
 
 
 class DataType(object):
