@@ -44,6 +44,7 @@ DEVICE_SN = "1234"
 import logging
 import time
 import struct
+import sys
 
 import antd.cfg as cfg
 import antd.hw as hw
@@ -54,6 +55,13 @@ import antd.garmin as garmin
 _log = logging.getLogger()
 cfg.init_loggers(logging.INFO)
 
+if len(sys.argv) != 2:
+	print "usage: %s <chatscript>" % sys.argv[0]
+	sys.exit(1)
+
+with open(sys.argv[1]) as file:
+    mock = garmin.MockHost(file.read())
+
 usb_ant_stick = hw.UsbHardware()
 ant_core = ant.Core(usb_ant_stick)
 ant_session = ant.Session(ant_core)
@@ -62,6 +70,7 @@ net = ant_session.networks[0]
 
 try:
     while True:
+        _log.info("RESET")
         ant_session.reset_system()
         net.set_key("\xa8\xa4\x23\xb9\xf5\x5e\x63\xc1")
         chan.assign(0x10, net.network_number)
@@ -99,6 +108,18 @@ try:
                     beacon = "\x43\x24\x02\x03" + host
                     chan.write(beacon + "\x44\x84\x01\x00" + DEVICE_SN)
                     chan.send_broadcast(beacon)
+                elif msg.startswith("\x44\x0D"):
+                    _log.info("RECV: " + msg[8:].encode("hex"))
+                    mock.write(msg[8:])
+                    data = mock.read()
+                    _log.info("SEND: " + data.encode("hex"))
+                    reply = "".join([
+                        beacon,
+                        "\x44\x8D\xFF\xFF\x00\x00" + struct.pack("<H", (len(data) - 1) / 8 + 1),
+                        data,
+                    ])
+                    chan.write(reply)
+
 finally:
     ant_session.close()
 
