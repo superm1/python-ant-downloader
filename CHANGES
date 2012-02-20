@@ -4,6 +4,9 @@
 	- .raw can optionally contain additional packets for additional
 	  capabilities, e.g. workout limits
 	- workout limits are retrieved from device
+	- merged branch mock:
+		- mockGpsDevice and be used along with a second USB ANT
+		  stick to emulate other hardware.
 
  - 2012-02-19
  	- fix bug where burst transfers may fail do to incorrect sequence

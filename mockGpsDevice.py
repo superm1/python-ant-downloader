@@ -32,6 +32,12 @@
 Mock hardware for test or reverse engineering device I don't
 own. Using two usb sticks can run this code against windows
 ANT agent and it will pretend to be a GPS device.
+
+Mock device accepts .raw file to lookup was expected replies
+to commands should me.
+
+The use of the class and antd.py or "ANT Agent" requires at
+the same time requires two USB ANT Sticks.
 """
 
 # FIXME fill in constants for the device you're trying to emulate
