@@ -465,25 +465,26 @@ class MockHost(object):
     """
 
     def __init__(self, data):
-        self.reader = self._read(data)
+        self.pkts_by_request = collections.defaultdict(list)
+        while data:
+            dir, pid, length = struct.unpack("<HHH", data[:6])
+            if not dir:
+                key = (pid, data[6:6 + length])
+            else:
+                self.pkts_by_request[key].append(data[2:6 + length])
+            data = data[6 + length:]
 
     def write(self, data, *args, **kwds):
         pid, length = struct.unpack("<HH", data[:4])
-        data = data[4:]
+        if pid not in (L000.PID_ACK, L000.PID_NACK):
+            data = data[4:4 + length]
+            self.iter = iter(self.pkts_by_request[(pid, data)])
 
     def read(self):
         try:
-            return self.reader.next()
+            return self.iter.next()
         except StopIteration:
             return ""
-
-    def _read(self, data):
-        while data:
-            (direction, pid, length) = struct.unpack("<HHH", data[:6])
-            if direction: pkt = data[2:length + 6]
-            else: return ""
-            data = data[length + 6:]
-            yield pkt
 
 
 class Protocol(object):
