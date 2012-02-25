@@ -7,7 +7,8 @@
 	- merged branch mock:
 		- mockGpsDevice and be used along with a second USB ANT
 		  stick to emulate other hardware.
-
+ - 2012-02-25
+    - setup tools, automated installer
  - 2012-02-19
  	- fix bug where burst transfers may fail do to incorrect sequence
 	  numbers. (0 should only be used for first packet)

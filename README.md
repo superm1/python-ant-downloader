@@ -25,40 +25,61 @@ So far this software has only been tested with a Garmin 405CX using USB2 Wireles
 
 ## Installing
 
-Clone the latest version from github:
+### Easy Install (stable)
+
+Make sure your system has python, setuptools, and libusb-1.0:
+
+    sudo apt-get install python python-setuptools libusb-1.0-0
+
+You may also want to install python-lxml. If you skip this step easy_install will need to build from source:
+
+	supo apt-get install python-lxml
+
+Once prerequisites are installed you can install python-ant-downloader from PyPi:
+
+    sudo easy_install python-ant-dowloader
+
+You can also upgrade a previous installation:
+
+	sudo easy_install --upgrade python-ant-downloader
+
+### Manual Install (stable/unstable)
+
+You can either clone the git project:
 
     git clone git://github.com/braiden/python-ant-downloader.git
 
-I try to keep the master branch stable, but if something fails you can try a tagged build, e.g:
+Or download a stable build from [PyPi](http://pypi.python.org/pypi/python_ant_downloader) or [Github tags](https://github.com/braiden/python-ant-downloader/tags)
 
-    cd python-ant-downloader
-    git checkout v12.03.17
+You can install by running:
 
-Use <code>git tag</code> to list other tagged builds. Version numbers are in the format <code>vYY.MM.DD</code>.
+    ./setup.py install
 
-### Prerequisites
+Or, run directly from the directory. If you choose not to run <code>./setup.py</code>, you will have to manually verify prerequisites are installed.
+
+##### Prerequisites
 
  * Python 2.6+
- * [pyusb 1.0](https://github.com/walac/pyusb) - older versions (0.4) will NOT work
- * [poster](https://github.com/synack/python-poster) - only if you enable upload to garmin connect
- * [argparse](http://pypi.python.org/pypi/argparse)
+ * [pyusb 1.0](https://github.com/walac/pyusb) - latest version from github is recommended. 0.4 will not work.
+ * [poster](http://pypi.python.org/pypi/poster) - only if you enable upload to garmin connect
+ * [argparse](http://pypi.python.org/pypi/argparse) - if < python 2.7
  * [lxml](http://pypi.python.org/pypi/lxml)
+ * [setuptools](http://pypi.python.org/pypi/setuptools)
 
 On Ubuntu most of these dependencies can be satisfied with:
 
-    apt-get install python python-argparse python-lxml
+    apt-get install python python-argparse python-lxml python-setuptools
 
-But, you will still need to download pyusb and poster from github.
+But, you will still need to download pyusb and poster from github or PyPi.
 
 ## Running
 
-	$ ./antd.py --help
+	$ ./ant-downloader --help
 	
 	usage: antd.py [-h] [--config f] [--daemon] [--verbose]
 	optional arguments:
 	  -h, --help        show this help message and exit
-	  --config f, -c f  use provided configuration, defaults: /etc/antd.cfg,
-	                    ./antd.cfg, ~/.antd/antd.cfg
+	  --config f, -c f  use provided configuration, defaults ~/.antd/antd.cfg,
 	  --daemon, -d      run in continuous search mode downloading data from any
 	                    availible devices, WILL NOT PAIR WITH NEW DEVICES
 	  --verbose, -v     enable all debugging output, NOISY: see config file to
@@ -77,5 +98,5 @@ You may also choose to enable "Force Downloads" on your device. This will cause 
 
 ### Configuration
 
-See antd.cfg from configuration options including where files are saved, and Garmin Connect login details.
+See antd.cfg from configuration options including where files are saved, and Garmin Connect login details. The file will be created in ~/.antd the first time you run the program.
 
