@@ -698,6 +698,99 @@ class PacketList(list):
         return (pid, length, data)
 
 
+class DataFormatMixin(object):
+    """
+    Defines the binary format of data type and
+    pack / unpack methods marshall / unmarshall
+    an instance for specified format.
+    """
+
+    """
+    An list of tuples defining the how the properties
+    of an instance map to a binary format.
+    [0] is the property name, [1] is either a string in
+    python struct format, or another DataFormatMixin to
+    which operation should delegate.
+    """
+    format = [
+        ("num_valid_steps[2]", "I"),
+        #("steps[20]", WorkoutStepType)
+        ("name", "16s")
+    ]
+
+    def _get_array_size(self, prop):
+        if "[" in prop:
+            return (prop[:prop.index("[")], int(prop[prop.index("[") + 1:prop.index("]")]))
+        else:
+            return (prop, None)
+
+    def pack(self):
+        """
+        Return a string representing the packed binary
+        format of this instance.
+        """
+        # FIXME, this is pretty inefficent, ugly, redundant
+        buffer = []
+        for (prop, fmt) in self.format:
+            prop, size = self._get_array_size(prop)
+            if isinstance(fmt, str):
+                # string are parsed as struct
+                s = struct.Struct("<" + fmt)
+                if not size:
+                    try: val = getattr(self, prop)
+                    except AttributeError: buffer.append("\x00" * s.size)
+                    else: buffer.append(s.pack(val))
+                else:
+                    for n in xrange(0, size):
+                        try: val = getattr(self, prop)[n] 
+                        except (AttributeError, IndexError): buffer.append("\x00" * s.size)
+                        else: buffer.append(s.pack(val))
+            else:
+                if not size:
+                    buffer.append(getattr(self, prop).pack())
+                else:
+                    for n in xrange(0, size):
+                        try: val = getattr(self, prop)[n]
+                        except IndexError: val = fmt()
+                        buffer.append(val.pack())
+        return "".join(buffer)
+
+    def unpack(self, buffer):
+        """
+        Populate this instance with the values represented
+        by the provided buffer. Buffer is parsed beginning
+        at start, and uparsed text is returned.
+        """
+        # FIXME, this is pretty inefficent, ugly, redundant
+        for (prop, fmt) in self.format:
+            prop, size = self._get_array_size(prop)
+            if isinstance(fmt, str):
+                # string are parsed as struct
+                s = struct.Struct("<" + fmt)
+                if not size:
+                    setattr(self, prop, s.unpack(buffer[:s.size])[0])
+                    buffer = buffer[s.size:]
+                else:
+                    result = []
+                    for n in xrange(0, size):
+                        result.append(s.unpack(buffer[:s.size])[0])
+                        buffer = buffer[s.size:]
+                    setattr(self, prop, result)
+            else:
+                if not size:
+                    value = fmt()
+                    buffer = fmt.unpack(buffer)
+                    setattr(self, prop, value)
+                else:
+                    result = []
+                    for n in xrange(0, size):
+                        value = fmt()
+                        buffer = fmt.unpack(buffer)
+                        result.append(value)
+                    setattr(self, prop, result)
+        return buffer
+
+
 class DataType(object):
     """
     DataType is base implementation for parser which
