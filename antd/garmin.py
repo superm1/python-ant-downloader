@@ -712,11 +712,7 @@ class DataFormatMixin(object):
     python struct format, or another DataFormatMixin to
     which operation should delegate.
     """
-    format = [
-        ("num_valid_steps[2]", "I"),
-        #("steps[20]", WorkoutStepType)
-        ("name", "16s")
-    ]
+    format = []
 
     def _get_array_size(self, prop):
         if "[" in prop:
@@ -747,11 +743,13 @@ class DataFormatMixin(object):
                         else: buffer.append(s.pack(val))
             else:
                 if not size:
-                    buffer.append(getattr(self, prop).pack())
+                    try: val = getattr(self, prop)
+                    except AttributeError: val = fmt()
+                    buffer.append(val.pack())
                 else:
                     for n in xrange(0, size):
                         try: val = getattr(self, prop)[n]
-                        except IndexError: val = fmt()
+                        except (AttributeError, IndexError): val = fmt()
                         buffer.append(val.pack())
         return "".join(buffer)
 
@@ -762,6 +760,7 @@ class DataFormatMixin(object):
         at start, and uparsed text is returned.
         """
         # FIXME, this is pretty inefficent, ugly, redundant
+        self.raw = buffer
         for (prop, fmt) in self.format:
             prop, size = self._get_array_size(prop)
             if isinstance(fmt, str):
@@ -780,14 +779,17 @@ class DataFormatMixin(object):
                 if not size:
                     value = fmt()
                     buffer = fmt.unpack(buffer)
+                    fmt.unparsed = ""
                     setattr(self, prop, value)
                 else:
                     result = []
                     for n in xrange(0, size):
                         value = fmt()
                         buffer = fmt.unpack(buffer)
+                        fmt.unparsed = ""
                         result.append(value)
                     setattr(self, prop, result)
+        self.unparsed = buffer
         return buffer
 
 
@@ -847,6 +849,10 @@ class DataType(object):
 
 class TimeType(DataType):
     
+    format = [
+        ("time", "I"),
+    ]
+
     EPOCH = 631065600 # Dec 31, 1989 @ 12:00am UTC  
 
     def __init__(self, data):
@@ -859,6 +865,11 @@ class TimeType(DataType):
 
 class PositionType(DataType):
     
+    format = [
+        ("lat", "i"),
+        ("lon", "i"),
+    ]
+
     INVALID_SEMI_CIRCLE = 2**31 - 1
 
     def __init__(self, data):
@@ -874,6 +885,10 @@ class PositionType(DataType):
 
 class CommandIdType(DataType):
     
+    format = [
+        ("command_id", "H"),
+    ]
+
     def __init__(self, data):
         super(CommandIdType, self).__init__(data)
         self._unpack("<H", ["command_id"])
@@ -881,12 +896,21 @@ class CommandIdType(DataType):
 
 class RecordsType(DataType):
 
+    format = [
+        ("count", "H"),
+    ]
+
     def __init__(self, data):
         super(RecordsType, self).__init__(data)
         self._unpack("<H", ["count"])
 
 
 class ProductDataType(DataType):
+
+    format = [
+        ("product_id", "H"),
+        ("software_version", "h"),
+    ]
 
     def __init__(self, data):
         super(ProductDataType, self).__init__(data)
@@ -913,6 +937,17 @@ class ProtocolArrayType(DataType):
 
 class WorkoutStepType(DataType):
 
+    format = [
+        ("custom_name", "16s"),
+        ("target_custom_zone_low", "f"),
+        ("target_cusomt_zone_hit", "f"),
+        ("duration_value", "H"),
+        ("intensity", "B"),
+        ("duration_type", "B"),
+        ("target_type", "B"),
+        ("target_value", "B"),
+    ]
+
     def __init__(self, data):
         super(WorkoutStepType, self).__init__(data)
         self._unpack("<16sffHBBBB2x", [
@@ -933,6 +968,13 @@ class D1008(DataType):
     Workout
     """
     
+    format = [
+        ("num_valid_steps", "I"),
+        ("steps[20]", WorkoutStepType),
+        ("name", "16s"),
+        ("sport_type", "B"),
+    ]
+
     def __init__(self, data):
         super(D1008, self).__init__(data)
         self._unpack("<I", ["num_valid_steps"])
@@ -947,6 +989,15 @@ class D1009(DataType):
     """
     Run
     """
+
+    format = [
+        ("track_index", "H"),
+        ("first_lap_index", "H"),
+        ("last_lap_index", "H"),
+        ("sport_type", "B"),
+        ("program_type", "B"),
+        ("multisport", "B"),
+    ]
 
     def __init__(self, data):
         super(D1009, self).__init__(data)
