@@ -42,7 +42,7 @@ def downloader():
     
     # command line
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", "-c", nargs=1, metavar="f", type=argparse.FileType('r'),
+    parser.add_argument("--config", "-c", nargs=1, metavar="f",
             help="use provided configuration, defaults to ~/.antd/antd.cfg")
     parser.add_argument("--daemon", "-d", action="store_const", const=True,
             help="run in continuous search mode downloading data from any availible devices, WILL NOT PAIR WITH NEW DEVICES")
@@ -65,7 +65,7 @@ def downloader():
     
     # register plugins, add uploaders and file converters here
     antd.plugin.register_plugins(
-        antd.cfg.create_garmin_connect_plugin(),
+        antd.cfg.create_upload_plugin(),
         antd.cfg.create_tcx_plugin()
     )
     
